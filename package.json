@@ -1,0 +1,23 @@
+{
+  "name": "just-music",
+  "version": "0.9.0",
+  "description": "A no-bullshit music bot for Discord.",
+  "main": "index.js",
+  "dependencies": {
+    "axios": "^0.19.2",
+    "discord.js": "^12.2.0",
+    "dotenv": "^8.2.0",
+    "eslint": "^7.1.0",
+    "ffmpeg": "^0.0.4",
+    "fluent-ffmpeg": "^2.1.2",
+    "jssoup": "^0.0.11",
+    "puppeteer": "^3.3.0",
+    "ytdl-core": "^3.0.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Brycen Addison",
+  "license": "MIT"
+}
