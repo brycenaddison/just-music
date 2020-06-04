@@ -5,9 +5,6 @@ const commands = require('./commands.json');
 const ytdl = require('ytdl-core');
 const axios = require('axios');
 const JSSoup = require('jssoup').default;
-const fs = require('fs');
-
-
 
 const client = new Discord.Client();
 const queue = new Map();
@@ -73,11 +70,6 @@ async function search(message, serverQueue) {
             responseType: 'text'
         })
         .then(response => {
-            fs.writeFile('yt.html', response.data, (err) => { 
-                  
-                // In case of a error throw err. 
-                if (err) throw err; 
-            } );
             const soup = new JSSoup(response.data);
             const results = soup.findAll('a', attrs={'class': 'yt-uix-tile-link', 'aria-describedby': true});
             let i = 0;
