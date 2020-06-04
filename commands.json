@@ -5,5 +5,6 @@
     "help": "Opens this menu.",
     "queue": "Shows all songs queued.",
     "loop": "Loops the current song.",
-    "remove": "Removes an item at a specific spot in the queue."
+    "remove": "Removes an item at a specific spot in the queue.",
+    "pause": "Pauses music or unpauses it if already paused."
 }

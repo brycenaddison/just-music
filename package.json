@@ -1,6 +1,6 @@
 {
   "name": "just-music",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "description": "A no-bullshit music bot for Discord.",
   "main": "index.js",
   "dependencies": {
@@ -19,5 +19,18 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Brycen Addison",
-  "license": "MIT"
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/brycenaddison/just-music.git"
+  },
+  "keywords": [
+    "discord",
+    "music",
+    "bot"
+  ],
+  "bugs": {
+    "url": "https://github.com/brycenaddison/just-music/issues"
+  },
+  "homepage": "https://github.com/brycenaddison/just-music#readme"
 }

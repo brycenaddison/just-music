@@ -49,6 +49,9 @@ client.on('message', async message => {
   } else if (message.content.startsWith(`${prefix}remove`)) {
     remove(message, serverQueue);
     return;
+  } else if (message.content === `${prefix}pause`) {
+    pause(message, serverQueue);
+    return;
   }
 })
 
@@ -115,7 +118,9 @@ async function execute(message, songInfo, serverQueue) {
 			songs: [],
 			volume: 5,
 			loop: false,
-            loop_count: 0
+            loop_count: 0,
+            playing: true,
+            dispatcher: null
 		};
 		queue.set(message.guild.id, queueContract)
 		queueContract.songs.push(song);
@@ -140,7 +145,7 @@ function play(guild, song) {
         return;
     }
 
-    const dispatcher = serverQueue.connection
+    serverQueue.dispatcher = serverQueue.connection
         .play(ytdl(song.url))
         .on("finish", () => {
             if (serverQueue.loop) {
@@ -151,7 +156,7 @@ function play(guild, song) {
             play(guild, serverQueue.songs[0]);
         })
         .on("error", error => console.error(error));
-    dispatcher.setVolumeLogarithmic(serverQueue.volume/5);
+    serverQueue.dispatcher.setVolumeLogarithmic(serverQueue.volume/5);
     serverQueue.textChannel.send(`Now playing: **${song.title}** \`${displayTime(song.length)}\``);
 }
 
@@ -225,6 +230,9 @@ function list(message, serverQueue) {
         content += `\nLooped **${serverQueue.loop_count}** ${(serverQueue.loop_count === 1) ? 'time' : 'times'} for a total of \`${displayTime(serverQueue.loop_count*serverQueue.songs[0].length)}\`\n`;
         content += `\nType ${prefix}loop to disable looping.`;
     }
+    if (!serverQueue.playing) {
+        content += `Playback is paused. Use \`${prefix}pause\` again to resume playback.`;
+    }
     const menu = new Discord.MessageEmbed()
     .setColor(color)
     .setTitle('Current Queue')
@@ -271,6 +279,22 @@ function remove(message, serverQueue) {
     }
     const removedSong = serverQueue.songs.splice(toRemove, 1)[0];
     return message.channel.send(`Succesfully removed **${removedSong.title}** \`${displayTime(removedSong.length)}\` from queue.`);
+}
+
+function pause(message, serverQueue) {
+    if (!serverQueue) {
+        return message.channel.send('nothins playin right now dawg');
+    }
+    if (serverQueue.playing) {
+        serverQueue.dispatcher.pause();
+        serverQueue.playing = false;
+        return message.channel.send(`Playback has been paused. Use \`${prefix}pause\` again to resume playback.`);
+    }
+    else {
+        serverQueue.dispatcher.resume();
+        serverQueue.playing = true;
+        return message.channel.send(`Playback has resumed.`);
+    }
 }
 
 client.login(process.env.TOKEN);
