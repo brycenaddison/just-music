@@ -3,11 +3,14 @@ const Discord = require('discord.js');
 const {prefix, color,} = require('./config.json');
 const commands = require('./commands.json');
 const ytdl = require('ytdl-core');
-const axios = require('axios');
-const JSSoup = require('jssoup').default;
+const {google} = require('googleapis');
 
 const client = new Discord.Client();
 const queue = new Map();
+const youtube = google.youtube({
+   version: 'v3',
+   auth: process.env.API_KEY
+});
 
 client.once("ready", () => {
     client.user.setActivity("music | !help",
@@ -61,32 +64,37 @@ async function search(message, serverQueue) {
     args.shift();
 
     try {
+
         const songInfo = await ytdl.getInfo(args[0]);
         execute(message, songInfo, serverQueue);
+
     } catch {
 
         const query = args.join(' ');
-        const url = "https://www.youtube.com/results?search_query=" + query + "&sp=EgIQAQ%253D%253D";
-        axios({
-            url: url,
-            method: 'get',
-            responseType: 'text'
-        })
-        .then(response => {
-            const soup = new JSSoup(response.data);
-            const results = soup.findAll('a', attrs={'class': 'yt-uix-tile-link', 'aria-describedby': true});
-            let i = 0;
-            while (results[i].attrs.href.substring(0,9) !== '/watch?v=') {
-                i++;
+        
+        youtube.search.list(
+            {
+                part:'snippet', 
+                q: query, 
+                maxResults: 1
+            }, 
+            async function (err, data) {
+                if (err) {
+                    console.error(err);
+                    return message.channel.send("Unknown error encountered, check logs.");
+                }
+                if (data) {
+                    console.log(data);
+                    if (data.data.items.length == 1) {
+                        const songInfo = await ytdl.getInfo('https://youtube.com/watch?v='+data.data.items[0].id.videoId);
+                        execute(message, songInfo, serverQueue);
+                    }
+                    else {
+                        return message.channel.send("No results found. Try using different keywords.");
+                    }
+                }
             }
-            return 'https://youtube.com' + results[i].attrs.href;
-        })
-        .then(async response => {
-            const songInfo = await ytdl.getInfo(response);
-            execute(message, songInfo, serverQueue);
-        }, error => {
-            return message.channel.send("No results found. Try using different keywords.")
-        });
+        ); 
     }
 }
 
