@@ -84,7 +84,6 @@ async function search(message, serverQueue) {
                     return message.channel.send("Unknown error encountered, check logs.");
                 }
                 if (data) {
-                    console.log(data);
                     if (data.data.items.length == 1) {
                         const songInfo = await ytdl.getInfo('https://youtube.com/watch?v='+data.data.items[0].id.videoId);
                         execute(message, songInfo, serverQueue);
