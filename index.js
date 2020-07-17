@@ -153,7 +153,7 @@ function play(guild, song) {
     }
 
     serverQueue.dispatcher = serverQueue.connection
-        .play(ytdl(song.url))
+        .play(ytdl(song.url, {filter: 'audioonly', quality: 'highestaudio', highWaterMark: 512 * 1024 * 1024}))
         .on("finish", () => {
             if (serverQueue.loop) {
                 serverQueue.loop_count++;
