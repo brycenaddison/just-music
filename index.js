@@ -1,6 +1,7 @@
 require('dotenv').config();
 const Discord = require('discord.js');
 const {prefix, color,} = require('./config.json');
+const {version,} = require('./package.json');
 const commands = require('./commands.json');
 const ytdl = require('ytdl-core');
 const {google} = require('googleapis');
@@ -16,6 +17,7 @@ client.once("ready", () => {
     client.user.setActivity("music | !help",
         {type: 'PLAYING'}
     );
+    console.log(`just music version ${version} loaded`);
 });
 
 client.once("reconnecting", () => {
@@ -55,6 +57,12 @@ client.on('message', async message => {
   } else if (message.content === `${prefix}pause`) {
     pause(message, serverQueue);
     return;
+  } else if (message.content === `${prefix}shuffle`) {
+    shuffle(message, serverQueue);
+    return;
+  } else if (message.content === `${prefix}clear`) {
+    clearQueue(message, serverQueue);
+    return;
   }
 })
 
@@ -63,12 +71,49 @@ async function search(message, serverQueue) {
     const args = message.content.split(' ');
     args.shift();
 
-    try {
+    const LINK_DETECTION_REGEX = /(([a-z]+:\/\/)?(([a-z0-9\-]+\.)+([a-z]{2}|aero|arpa|biz|com|coop|edu|gov|info|int|jobs|mil|museum|name|nato|net|org|pro|travel|local|internal))(:[0-9]{1,5})?(\/[a-z0-9_\-\.~]+)*(\/([a-z0-9_\-\.]*)(\?[a-z0-9+_\-\.%=&amp;]*)?)?(#[a-zA-Z0-9!$&'()*+.=-_~:@/?]*)?)(\s+|$)/gi
+    const matches = LINK_DETECTION_REGEX.exec(args[0]);
 
-        const songInfo = await ytdl.getInfo(args[0]);
-        execute(message, songInfo, serverQueue);
+    if (matches != null) {
 
-    } catch {
+        try { 
+            let songInfo = await ytdl.getInfo(matches[0]);
+            execute(message, songInfo, serverQueue);
+            const urlParams = new URLSearchParams(matches[10]);
+            if (urlParams.has("list")) {
+                const playlistId = urlParams.get("list");
+                const origVideoId = urlParams.get("v");
+                let count = 0;
+                youtube.playlistItems.list({
+                  "part": [
+                    "snippet"
+                  ],
+                  "maxResults": 50,
+                  "playlistId": playlistId
+                }).then(
+                    async function(response) {
+                        await response.data.items.forEach(async function(item, index) {
+                            itemId = item.snippet.resourceId["videoId"];
+                            if (itemId != origVideoId) {
+                                count++;
+                                let songInfo = await ytdl.getInfo('https://youtube.com/watch?v='+itemId);
+                                await execute(message, songInfo, queue.get(message.guild.id), playlistSong = true);
+                            }
+                        });
+                        return await count;
+                    },
+                    function(err) { 
+                        console.error("Execute error", err); 
+                    }
+                ).then(async function(count) {
+                    return await message.channel.send(`Adding \`${count+1}\` songs from the playlist to the queue.`);
+                })
+            } 
+        } catch {
+            return message.channel.send("Only YouTube links are currently supported.")
+        }
+
+    } else {
 
         const query = args.join(' ');
         
@@ -84,9 +129,13 @@ async function search(message, serverQueue) {
                     return message.channel.send("Unknown error encountered, check logs.");
                 }
                 if (data) {
-                    if (data.data.items.length == 1) {
-                        const songInfo = await ytdl.getInfo('https://youtube.com/watch?v='+data.data.items[0].id.videoId);
-                        execute(message, songInfo, serverQueue);
+                    if (data.data.items.length === 1) {
+                        try {
+                            const songInfo = await ytdl.getInfo('https://youtube.com/watch?v='+data.data.items[0].id.videoId);
+                            execute(message, songInfo, serverQueue);
+                        } catch (err) {
+                            console.error(err);
+                        }
                     }
                     else {
                         return message.channel.send("No results found. Try using different keywords.");
@@ -97,7 +146,7 @@ async function search(message, serverQueue) {
     }
 }
 
-async function execute(message, songInfo, serverQueue) {
+async function execute(message, songInfo, serverQueue, playlistSong = false) {
 
 	const voiceChannel = message.member.voice.channel;
 	if (!voiceChannel)
@@ -116,7 +165,7 @@ async function execute(message, songInfo, serverQueue) {
 
 	if (serverQueue) {
 		serverQueue.songs.push(song);
-		return message.channel.send(`**${song.title}** \`${displayTime(song.length)}\` was added to the queue at position \`${serverQueue.songs.length - 1}\`.`);
+		if (!playlistSong) return message.channel.send(`**${song.title}** \`${displayTime(song.length)}\` was added to the queue at position \`${serverQueue.songs.length - 1}\`.`);
 	} else {
 		const queueContract = {
 			textChannel: message.channel,
@@ -137,7 +186,7 @@ async function execute(message, songInfo, serverQueue) {
 			queueContract.connection = connection;
 			play(message.guild, queueContract.songs[0])
 		} catch (e) {
-			console.log(e);
+			console.error(e);
 			queue.delete(message.guild.id);
 			return message.channel.send('Unknown error encountered, check logs.');
 		}
@@ -199,12 +248,45 @@ function help(message) {
     return message.channel.send(menu);
 }
 
-function list(message, serverQueue) {
+function list(message, serverQueue, page = 1, existingMessage = null) {
     if (!serverQueue) {
         return message.channel.send('nothins playin right now dawg');
     }
-    
-    let content = ''
+    message.reactions.removeAll();
+    results = generateContent(serverQueue, page);
+    page = results[2];
+    const menu = new Discord.MessageEmbed()
+    .setColor(color)
+    .setTitle('Current Queue')
+    .setDescription(results[0])
+    .setThumbnail(serverQueue.songs[0].thumbnail);
+    if (results[1] > 1) menu.setFooter(`Page ${page}/${results[1]} | Use arrows to change page`);
+    ((existingMessage) ? existingMessage.edit(menu) : message.channel.send(menu)).then((message) => 
+        {
+            if (results[1] > 1) {}
+            message.react("⬅️");
+            message.react("➡️");
+            const collector = message.createReactionCollector((reaction, user) => {
+                    return (!user.bot) && (reaction.emoji.name === "⬅️" || reaction.emoji.name === "➡️");
+                }
+            ).once("collect", reaction => {
+                const chosen = reaction.emoji.name;
+                if(chosen === "⬅️"){
+                    list(message, serverQueue, page=page-1, existingMessage=message);
+                }else if(chosen === "➡️"){
+                    console.log("hi");
+                    list(message, serverQueue, page=page+1, existingMessage=message);
+                }
+            });
+        }
+    );
+}
+
+function generateContent(serverQueue, page) {
+    if (page < 1) page++;
+
+    let content = "";
+    let pages = [];
     const queueLength = Object.keys(serverQueue.songs).length;
     let totalTime = 0;
     let inQueue = 0;
@@ -212,16 +294,18 @@ function list(message, serverQueue) {
     if (!serverQueue.loop) {
         content += `Currently Playing: [**${serverQueue.songs[0].title}**](${serverQueue.songs[0].url}) \`${displayTime(serverQueue.songs[0].length)}\`\n`;
         if (queueLength < 2) {
-            content += `\nNothing else is queued. Use ${prefix}play to add a song!\n`;
+            content = `\nNothing else is queued. Use ${prefix}play to add a song!\n`;
         } else {
             content += `\n**Up next:**\n`;
         }
         for (i = 1; i < Object.keys(serverQueue.songs).length; i++) {
-            content += `${i}. [${serverQueue.songs[i].title}](${serverQueue.songs[i].url}) \`${displayTime(serverQueue.songs[i].length)}\`\n`;
+            if (pages[Math.floor(i/10)] == null) pages[Math.floor(i/10)] = `${i}. [${serverQueue.songs[i].title}](${serverQueue.songs[i].url}) \`${displayTime(serverQueue.songs[i].length)}\`\n`;
+            else pages[Math.floor(i/10)] += `${i}. [${serverQueue.songs[i].title}](${serverQueue.songs[i].url}) \`${displayTime(serverQueue.songs[i].length)}\`\n`;
             totalTime += serverQueue.songs[i].length;
             inQueue++;
         }
-
+        while (page > pages.length) page--;
+        if (pages[page-1]) content += pages[page-1];
         let s = "";
         if (queueLength > 2) s = "s";
         if (queueLength > 1) {
@@ -240,12 +324,7 @@ function list(message, serverQueue) {
     if (!serverQueue.playing) {
         content += `Playback is paused. Use \`${prefix}pause\` again to resume playback.`;
     }
-    const menu = new Discord.MessageEmbed()
-    .setColor(color)
-    .setTitle('Current Queue')
-    .setDescription(content)
-    .setThumbnail(serverQueue.songs[0].thumbnail);
-    return message.channel.send(menu);
+    return [content, pages.length, page];
 }
 
 function displayTime(total_seconds) {
@@ -300,8 +379,40 @@ function pause(message, serverQueue) {
     else {
         serverQueue.dispatcher.resume();
         serverQueue.playing = true;
-        return message.channel.send(`Playback has resumed.`);
+        message.channel.send(`Playback has resumed.`);
     }
+}
+
+function shuffle(message, serverQueue) {
+    if (!serverQueue) {
+        return message.channel.send('nothins playin right now dawg');
+    }
+    if (serverQueue.songs.length < 2) {
+        return message.channel.send('no songs in the queue to shuffle, idk what else to say');
+    }
+    let tempArray = Array.from(serverQueue.songs);
+    let currentSong = tempArray.shift();
+    for(let i = tempArray.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * i);
+      const temp = tempArray[i];
+      tempArray[i] = tempArray[j];
+      tempArray[j] = temp;
+    }
+    tempArray.unshift(currentSong);
+    serverQueue.songs = tempArray;
+    return message.channel.send(`Shuffled \`${tempArray.length - 1}\` songs.`);
+}
+
+function clearQueue(message, serverQueue) {
+    if (!serverQueue) {
+        return message.channel.send('nothins playin right now dawg');
+    }
+    if (serverQueue.songs.length < 2) {
+        return message.channel.send('no songs in the queue to clear, idk what else to say');
+    }
+    const count = serverQueue.songs.length - 1;
+    serverQueue.songs = [serverQueue.songs[0]];
+    return message.channel.send(`Removed \`${count}\` songs from the queue.`);
 }
 
 client.login(process.env.TOKEN);
