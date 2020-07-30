@@ -164,7 +164,7 @@ async function search(message, serverQueue) {
 }
 
 async function execute(message, songInfo, serverQueue, playlistSong = false) {
-    
+
 	const song = {
 		title: songInfo.videoDetails.title,
 		url: songInfo.videoDetails.video_url,
@@ -178,7 +178,7 @@ async function execute(message, songInfo, serverQueue, playlistSong = false) {
 	} else {
 		const queueContract = {
 			textChannel: message.channel,
-			voiceChannel: voiceChannel,
+			voiceChannel: message.member.voice.channel,
 			connection: null,
 			songs: [],
 			volume: 5,
@@ -191,7 +191,7 @@ async function execute(message, songInfo, serverQueue, playlistSong = false) {
 		queueContract.songs.push(song);
 
 		try {
-			var connection = await voiceChannel.join();
+			var connection = await message.member.voice.channel.join();
 			queueContract.connection = connection;
 			play(message.guild, queueContract.songs[0])
 		} catch (e) {
