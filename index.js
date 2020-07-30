@@ -68,6 +68,14 @@ client.on('message', async message => {
 
 async function search(message, serverQueue) {
     
+    const voiceChannel = message.member.voice.channel;
+    if (!voiceChannel)
+        return message.channel.send("ur trolling join a channel first");
+    const permissions = voiceChannel.permissionsFor(message.client.user);
+    if (!permissions.has("CONNECT") || !permissions.has("SPEAK")) {
+        return message.channel.send("give me permissions fucktard");
+    }
+
     const args = message.content.split(' ');
     args.shift();
 
@@ -77,13 +85,17 @@ async function search(message, serverQueue) {
     if (matches != null) {
 
         try { 
+
             let songInfo = await ytdl.getInfo(matches[0]);
             execute(message, songInfo, serverQueue);
             const urlParams = new URLSearchParams(matches[10]);
+            
             if (urlParams.has("list")) {
+                
                 const playlistId = urlParams.get("list");
                 const origVideoId = urlParams.get("v");
                 let count = 0;
+                
                 youtube.playlistItems.list({
                   "part": [
                     "snippet"
@@ -108,10 +120,15 @@ async function search(message, serverQueue) {
                 ).then(async function(count) {
                     return await message.channel.send(`Adding \`${count+1}\` songs from the playlist to the queue.`);
                 })
+            
             } 
+
         } catch {
             return message.channel.send("Only YouTube links are currently supported.")
         }
+
+        const songInfo = await ytdl.getInfo(args[0]);
+        execute(message, songInfo, serverQueue);
 
     } else {
 
@@ -147,14 +164,6 @@ async function search(message, serverQueue) {
 }
 
 async function execute(message, songInfo, serverQueue, playlistSong = false) {
-
-	const voiceChannel = message.member.voice.channel;
-	if (!voiceChannel)
-		return message.channel.send("ur trolling join a channel first");
-	const permissions = voiceChannel.permissionsFor(message.client.user);
-	if (!permissions.has("CONNECT") || !permissions.has("SPEAK")) {
-		return message.channel.send("give me permissions fucktard");
-	}
     
 	const song = {
 		title: songInfo.videoDetails.title,
@@ -188,7 +197,8 @@ async function execute(message, songInfo, serverQueue, playlistSong = false) {
 		} catch (e) {
 			console.error(e);
 			queue.delete(message.guild.id);
-			return message.channel.send('Unknown error encountered, check logs.');
+			message.channel.send('Unknown error encountered, check logs.');
+            return false;
 		}
  	}
 }
@@ -239,7 +249,7 @@ function help(message) {
     const menu = new Discord.MessageEmbed()
     .setColor(color)
     .setTitle('Commands List')
-    .setDescription('just music by Brycen Addison');
+    .setDescription('just music by Brycen Addison | version '+version);
 
     for (const command in commands) {
         menu.addField(`${prefix}${command}`, commands[command]);
