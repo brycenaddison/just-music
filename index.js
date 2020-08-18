@@ -109,6 +109,7 @@ async function search(message, serverQueue) {
                             if (itemId != origVideoId) {
                                 count++;
                                 let songInfo = await ytdl.getInfo('https://youtube.com/watch?v='+itemId);
+
                                 await execute(message, songInfo, queue.get(message.guild.id), playlistSong = true);
                             }
                         });
@@ -123,12 +124,10 @@ async function search(message, serverQueue) {
             
             } 
 
-        } catch {
-            return message.channel.send("Only YouTube links are currently supported.")
+        } catch (err) {
+            console.error(err);
+            return message.channel.send("Unknown error encountered. Check logs.");
         }
-
-        const songInfo = await ytdl.getInfo(args[0]);
-        execute(message, songInfo, serverQueue);
 
     } else {
 
@@ -231,7 +230,7 @@ function skip(message, serverQueue) {
         return message.channel.send("you kinda have to be in a channel bud, no other way to put it");
     if (!serverQueue)
         return message.channel.send("now tell me how the fuck im supposed to skip a song if nothing is playing");
-    serverQueue.connection.dispatcher.end();
+    serverQueue.connection.dispatcher.end().catch(err => console.error(err));
     return message.channel.send(`Skipped **${serverQueue.songs[0].title}** \`${displayTime(serverQueue.songs[0].length)}\``);
 }
 
@@ -258,11 +257,17 @@ function help(message) {
     return message.channel.send(menu);
 }
 
-function list(message, serverQueue, page = 1, existingMessage = null) {
-    if (!serverQueue) {
-        return message.channel.send('nothins playin right now dawg');
+async function list(message, serverQueue, page = 1, existingMessage = null) {
+    if (existingMessage) {
+        const reactions = existingMessage.reactions.cache;
+        try {
+            for (const reaction of reactions.values()) {
+                await reaction.users.remove(message.author.id);
+            }
+        } catch (error) {
+            console.error('Failed to remove reactions.');
+        }
     }
-    message.reactions.removeAll();
     results = generateContent(serverQueue, page);
     page = results[2];
     const menu = new Discord.MessageEmbed()
@@ -271,21 +276,23 @@ function list(message, serverQueue, page = 1, existingMessage = null) {
     .setDescription(results[0])
     .setThumbnail(serverQueue.songs[0].thumbnail);
     if (results[1] > 1) menu.setFooter(`Page ${page}/${results[1]} | Use arrows to change page`);
-    ((existingMessage) ? existingMessage.edit(menu) : message.channel.send(menu)).then((message) => 
+    ((existingMessage) ? existingMessage.edit(menu) : message.channel.send(menu)).then(async (newmsg) => 
         {
-            if (results[1] > 1) {}
-            message.react("⬅️");
-            message.react("➡️");
-            const collector = message.createReactionCollector((reaction, user) => {
-                    return (!user.bot) && (reaction.emoji.name === "⬅️" || reaction.emoji.name === "➡️");
+            Promise.all([
+                newmsg.react("⬅️"),
+                newmsg.react("➡️")
+            ])
+                .catch(() => console.error('One of the emojis failed to react.'));
+            
+            const collector = newmsg.createReactionCollector((reaction, user) => {
+                    return (user.id == message.author.id) && (reaction.emoji.name === "⬅️" || reaction.emoji.name === "➡️");
                 }
-            ).once("collect", reaction => {
+            ).once("collect", async reaction => {
                 const chosen = reaction.emoji.name;
                 if(chosen === "⬅️"){
-                    list(message, serverQueue, page=page-1, existingMessage=message);
-                }else if(chosen === "➡️"){
-                    console.log("hi");
-                    list(message, serverQueue, page=page+1, existingMessage=message);
+                    await list(message, serverQueue, page=page-1, existingMessage=newmsg);
+                } else if(chosen === "➡️"){
+                    await list(message, serverQueue, page=page+1, existingMessage=newmsg);
                 }
             });
         }
