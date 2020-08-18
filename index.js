@@ -275,28 +275,30 @@ async function list(message, serverQueue, page = 1, existingMessage = null) {
     .setTitle('Current Queue')
     .setDescription(results[0])
     .setThumbnail(serverQueue.songs[0].thumbnail);
-    if (results[1] > 1) menu.setFooter(`Page ${page}/${results[1]} | Use arrows to change page`);
-    ((existingMessage) ? existingMessage.edit(menu) : message.channel.send(menu)).then(async (newmsg) => 
-        {
-            Promise.all([
-                newmsg.react("⬅️"),
-                newmsg.react("➡️")
-            ])
-                .catch(() => console.error('One of the emojis failed to react.'));
-            
-            const collector = newmsg.createReactionCollector((reaction, user) => {
-                    return (user.id == message.author.id) && (reaction.emoji.name === "⬅️" || reaction.emoji.name === "➡️");
-                }
-            ).once("collect", async reaction => {
-                const chosen = reaction.emoji.name;
-                if(chosen === "⬅️"){
-                    await list(message, serverQueue, page=page-1, existingMessage=newmsg);
-                } else if(chosen === "➡️"){
-                    await list(message, serverQueue, page=page+1, existingMessage=newmsg);
-                }
-            });
-        }
-    );
+    if (results[1] > 1) {
+        menu.setFooter(`Page ${page}/${results[1]} | Use arrows to change page`);
+        ((existingMessage) ? existingMessage.edit(menu) : message.channel.send(menu)).then(async (newmsg) => 
+            {
+                Promise.all([
+                    newmsg.react("⬅️"),
+                    newmsg.react("➡️")
+                ])
+                    .catch(() => console.error('One of the emojis failed to react.'));
+                
+                const collector = newmsg.createReactionCollector((reaction, user) => {
+                        return (user.id == message.author.id) && (reaction.emoji.name === "⬅️" || reaction.emoji.name === "➡️");
+                    }
+                ).once("collect", async reaction => {
+                    const chosen = reaction.emoji.name;
+                    if(chosen === "⬅️"){
+                        await list(message, serverQueue, page=page-1, existingMessage=newmsg);
+                    } else if(chosen === "➡️"){
+                        await list(message, serverQueue, page=page+1, existingMessage=newmsg);
+                    }
+                });
+            }
+        );
+    }
 }
 
 function generateContent(serverQueue, page) {
