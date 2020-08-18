@@ -28,42 +28,30 @@ client.once("disconnect", () => {
   console.log("Disconnect!");
 });
 
-client.on('message', async message => {
-  if (!message.content.startsWith(prefix)) return;
-  if (message.author.bot) return;
+client.on('message', async (message) => {
+    const {
+        content,
+        author,
+        guild
+    } = message;
 
-  const serverQueue = queue.get(message.guild.id);
-  if (message.content.startsWith(`${prefix}play`)) {
-  	search(message, serverQueue);
-    return;
-  } else if (message.content === `${prefix}stop`) {
-    stop(message, serverQueue);
-    return;
-  } else if (message.content === `${prefix}skip`) {
-    skip(message, serverQueue);
-    return;
-  } else if (message.content === `${prefix}help`) {
-    help(message);
-    return;
-  } else if (message.content === `${prefix}queue`) {
-    list(message, serverQueue);
-    return;
-  } else if (message.content === `${prefix}loop`) {
-    toggleLoop(message, serverQueue);
-    return;
-  } else if (message.content.startsWith(`${prefix}remove`)) {
-    remove(message, serverQueue);
-    return;
-  } else if (message.content === `${prefix}pause`) {
-    pause(message, serverQueue);
-    return;
-  } else if (message.content === `${prefix}shuffle`) {
-    shuffle(message, serverQueue);
-    return;
-  } else if (message.content === `${prefix}clear`) {
-    clearQueue(message, serverQueue);
-    return;
-  }
+    const aliases = {
+        stop,
+        skip,
+        help,
+        pause,
+        shuffle,
+        remove,
+        play: search,
+        clear: clearQueue,
+        loop: toggleLoop,
+        queue: list
+    }
+
+    if(content.startsWith(prefix) && !author.bot) {
+        const input = content.substring(1,content.length).split(' ')[0];
+        aliases[input](message, queue.get(guild.id));
+    }
 })
 
 async function search(message, serverQueue) {
@@ -275,30 +263,30 @@ async function list(message, serverQueue, page = 1, existingMessage = null) {
     .setTitle('Current Queue')
     .setDescription(results[0])
     .setThumbnail(serverQueue.songs[0].thumbnail);
-    if (results[1] > 1) {
-        menu.setFooter(`Page ${page}/${results[1]} | Use arrows to change page`);
-        ((existingMessage) ? existingMessage.edit(menu) : message.channel.send(menu)).then(async (newmsg) => 
-            {
-                Promise.all([
-                    newmsg.react("⬅️"),
-                    newmsg.react("➡️")
-                ])
-                    .catch(() => console.error('One of the emojis failed to react.'));
-                
-                const collector = newmsg.createReactionCollector((reaction, user) => {
-                        return (user.id == message.author.id) && (reaction.emoji.name === "⬅️" || reaction.emoji.name === "➡️");
-                    }
-                ).once("collect", async reaction => {
-                    const chosen = reaction.emoji.name;
-                    if(chosen === "⬅️"){
-                        await list(message, serverQueue, page=page-1, existingMessage=newmsg);
-                    } else if(chosen === "➡️"){
-                        await list(message, serverQueue, page=page+1, existingMessage=newmsg);
-                    }
-                });
-            }
-        );
-    }
+    if (results[1] > 1) menu.setFooter(`Page ${page}/${results[1]} | Use arrows to change page`);
+    ((existingMessage) ? existingMessage.edit(menu) : message.channel.send(menu)).then(async (newmsg) => 
+        {
+            if (results[1] <= 1) return;
+
+            Promise.all([
+                newmsg.react("⬅️"),
+                newmsg.react("➡️")
+            ])
+                .catch(() => console.error('One of the emojis failed to react.'));
+            
+            const collector = newmsg.createReactionCollector((reaction, user) => {
+                    return (user.id == message.author.id) && (reaction.emoji.name === "⬅️" || reaction.emoji.name === "➡️");
+                }
+            ).once("collect", async reaction => {
+                const chosen = reaction.emoji.name;
+                if(chosen === "⬅️"){
+                    await list(message, serverQueue, page=page-1, existingMessage=newmsg);
+                } else if(chosen === "➡️"){
+                    await list(message, serverQueue, page=page+1, existingMessage=newmsg);
+                }
+            });
+        }
+    );
 }
 
 function generateContent(serverQueue, page) {
