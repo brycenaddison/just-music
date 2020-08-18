@@ -28,42 +28,30 @@ client.once("disconnect", () => {
   console.log("Disconnect!");
 });
 
-client.on('message', async message => {
-  if (!message.content.startsWith(prefix)) return;
-  if (message.author.bot) return;
+client.on('message', async (message) => {
+    const {
+        content,
+        author,
+        guild
+    } = message;
 
-  const serverQueue = queue.get(message.guild.id);
-  if (message.content.startsWith(`${prefix}play`)) {
-  	search(message, serverQueue);
-    return;
-  } else if (message.content === `${prefix}stop`) {
-    stop(message, serverQueue);
-    return;
-  } else if (message.content === `${prefix}skip`) {
-    skip(message, serverQueue);
-    return;
-  } else if (message.content === `${prefix}help`) {
-    help(message);
-    return;
-  } else if (message.content === `${prefix}queue`) {
-    list(message, serverQueue);
-    return;
-  } else if (message.content === `${prefix}loop`) {
-    toggleLoop(message, serverQueue);
-    return;
-  } else if (message.content.startsWith(`${prefix}remove`)) {
-    remove(message, serverQueue);
-    return;
-  } else if (message.content === `${prefix}pause`) {
-    pause(message, serverQueue);
-    return;
-  } else if (message.content === `${prefix}shuffle`) {
-    shuffle(message, serverQueue);
-    return;
-  } else if (message.content === `${prefix}clear`) {
-    clearQueue(message, serverQueue);
-    return;
-  }
+    const aliases = {
+        stop,
+        skip,
+        help,
+        pause,
+        shuffle,
+        remove,
+        play: search,
+        clear: clearQueue,
+        loop: toggleLoop,
+        queue: list
+    }
+
+    if(content.startsWith(prefix) && !author.bot) {
+        const input = content.substring(1,content.length).split(' ')[0];
+        aliases[input](message, queue.get(guild.id))
+    }
 })
 
 async function search(message, serverQueue) {
