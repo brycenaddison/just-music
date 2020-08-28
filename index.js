@@ -218,7 +218,11 @@ function skip(message, serverQueue) {
         return message.channel.send("you kinda have to be in a channel bud, no other way to put it");
     if (!serverQueue)
         return message.channel.send("now tell me how the fuck im supposed to skip a song if nothing is playing");
-    serverQueue.connection.dispatcher.end().catch(err => console.error(err));
+    try {
+        serverQueue.connection.dispatcher.end();
+    } catch (err) {
+        console.error(err);
+    }
     return message.channel.send(`Skipped **${serverQueue.songs[0].title}** \`${displayTime(serverQueue.songs[0].length)}\``);
 }
 
