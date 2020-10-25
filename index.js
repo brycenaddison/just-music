@@ -61,7 +61,7 @@ async function search(message, serverQueue) {
         return message.channel.send("ur trolling join a channel first");
     const permissions = voiceChannel.permissionsFor(message.client.user);
     if (!permissions.has("CONNECT") || !permissions.has("SPEAK")) {
-        return message.channel.send("give me permissions fucktard");
+        return message.channel.send("but like i need permissions bro");
     }
 
     const args = message.content.split(' ');
@@ -217,7 +217,7 @@ function skip(message, serverQueue) {
     if (!message.member.voice.channel)
         return message.channel.send("you kinda have to be in a channel bud, no other way to put it");
     if (!serverQueue)
-        return message.channel.send("now tell me how the fuck im supposed to skip a song if nothing is playing");
+        return message.channel.send("now tell me how im supposed to skip a song if nothing is playing");
     try {
         serverQueue.connection.dispatcher.end();
     } catch (err) {
@@ -230,7 +230,7 @@ function stop(message, serverQueue) {
     if (!message.member.voice.channel)
         return message.channel.send("you kinda have to be in a channel bud, no other way to put it");
     if (!serverQueue)
-        return message.channel.send("now tell me how the fuck im supposed to stop playing if nothing is playing");
+        return message.channel.send("now tell me how im supposed to stop playing if nothing is playing");
     serverQueue.songs = [];
     serverQueue.connection.dispatcher.end();
     return message.channel.send("k bye");
@@ -324,7 +324,7 @@ function generateContent(serverQueue, page) {
         }
 
         if (content.length > 2048) {
-            message.channel.send("message too long blah blah over 2048 characters blah blah yeah ill add pages and shit maybe later but for now heres just the first 2048 characters");
+            message.channel.send("message too long blah blah over 2048 characters blah blah yeah ill add pages maybe later but for now heres just the first 2048 characters");
             content = content.substring(0,2048);
         }
     } else {
