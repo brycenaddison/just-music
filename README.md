@@ -1,2 +1,2 @@
 # just-music
- A no-BS music bot for Discord.
+ A simple music bot for Discord.
