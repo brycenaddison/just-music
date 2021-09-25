@@ -50,12 +50,20 @@ client.on('message', async (message) => {
 
     if(content.startsWith(prefix) && !author.bot) {
         const input = content.substring(1,content.length).split(' ')[0];
-        aliases[input](message, queue.get(guild.id))
+        aliases[input](message, queue.get(guild.id));
     }
 })
 
 async function search(message, serverQueue) {
     
+    const voiceChannel = message.member.voice.channel;
+    if (!voiceChannel)
+        return message.channel.send("ur trolling join a channel first");
+    const permissions = voiceChannel.permissionsFor(message.client.user);
+    if (!permissions.has("CONNECT") || !permissions.has("SPEAK")) {
+        return message.channel.send("but like i need permissions bro");
+    }
+
     const args = message.content.split(' ');
     args.shift();
 
@@ -65,13 +73,17 @@ async function search(message, serverQueue) {
     if (matches != null) {
 
         try { 
+
             let songInfo = await ytdl.getInfo(matches[0]);
             execute(message, songInfo, serverQueue);
             const urlParams = new URLSearchParams(matches[10]);
+            
             if (urlParams.has("list")) {
+                
                 const playlistId = urlParams.get("list");
                 const origVideoId = urlParams.get("v");
                 let count = 0;
+                
                 youtube.playlistItems.list({
                   "part": [
                     "snippet"
@@ -85,6 +97,7 @@ async function search(message, serverQueue) {
                             if (itemId != origVideoId) {
                                 count++;
                                 let songInfo = await ytdl.getInfo('https://youtube.com/watch?v='+itemId);
+
                                 await execute(message, songInfo, queue.get(message.guild.id), playlistSong = true);
                             }
                         });
@@ -96,9 +109,12 @@ async function search(message, serverQueue) {
                 ).then(async function(count) {
                     return await message.channel.send(`Adding \`${count+1}\` songs from the playlist to the queue.`);
                 })
+            
             } 
-        } catch {
-            return message.channel.send("Only YouTube links are currently supported.")
+
+        } catch (err) {
+            console.error(err);
+            return message.channel.send("Unknown error encountered. Check logs.");
         }
 
     } else {
@@ -136,19 +152,11 @@ async function search(message, serverQueue) {
 
 async function execute(message, songInfo, serverQueue, playlistSong = false) {
 
-	const voiceChannel = message.member.voice.channel;
-	if (!voiceChannel)
-		return message.channel.send("ur trolling join a channel first");
-	const permissions = voiceChannel.permissionsFor(message.client.user);
-	if (!permissions.has("CONNECT") || !permissions.has("SPEAK")) {
-		return message.channel.send("give me permissions fucktard");
-	}
-    
 	const song = {
 		title: songInfo.videoDetails.title,
 		url: songInfo.videoDetails.video_url,
         length: parseInt(songInfo.videoDetails.lengthSeconds),
-        thumbnail: songInfo.videoDetails.thumbnail.thumbnails[0].url
+        thumbnail: songInfo.videoDetails.thumbnails[0].url
 	}
 
 	if (serverQueue) {
@@ -157,7 +165,7 @@ async function execute(message, songInfo, serverQueue, playlistSong = false) {
 	} else {
 		const queueContract = {
 			textChannel: message.channel,
-			voiceChannel: voiceChannel,
+			voiceChannel: message.member.voice.channel,
 			connection: null,
 			songs: [],
 			volume: 5,
@@ -170,13 +178,14 @@ async function execute(message, songInfo, serverQueue, playlistSong = false) {
 		queueContract.songs.push(song);
 
 		try {
-			var connection = await voiceChannel.join();
+			var connection = await message.member.voice.channel.join();
 			queueContract.connection = connection;
 			play(message.guild, queueContract.songs[0])
 		} catch (e) {
 			console.error(e);
 			queue.delete(message.guild.id);
-			return message.channel.send('Unknown error encountered, check logs.');
+			message.channel.send('Unknown error encountered, check logs.');
+            return false;
 		}
  	}
 }
@@ -208,8 +217,12 @@ function skip(message, serverQueue) {
     if (!message.member.voice.channel)
         return message.channel.send("you kinda have to be in a channel bud, no other way to put it");
     if (!serverQueue)
-        return message.channel.send("now tell me how the fuck im supposed to skip a song if nothing is playing");
-    serverQueue.connection.dispatcher.end();
+        return message.channel.send("now tell me how im supposed to skip a song if nothing is playing");
+    try {
+        serverQueue.connection.dispatcher.end();
+    } catch (err) {
+        console.error(err);
+    }
     return message.channel.send(`Skipped **${serverQueue.songs[0].title}** \`${displayTime(serverQueue.songs[0].length)}\``);
 }
 
@@ -217,7 +230,7 @@ function stop(message, serverQueue) {
     if (!message.member.voice.channel)
         return message.channel.send("you kinda have to be in a channel bud, no other way to put it");
     if (!serverQueue)
-        return message.channel.send("now tell me how the fuck im supposed to stop playing if nothing is playing");
+        return message.channel.send("now tell me how im supposed to stop playing if nothing is playing");
     serverQueue.songs = [];
     serverQueue.connection.dispatcher.end();
     return message.channel.send("k bye");
@@ -227,7 +240,7 @@ function help(message) {
     const menu = new Discord.MessageEmbed()
     .setColor(color)
     .setTitle('Commands List')
-    .setDescription('just music by Brycen Addison');
+    .setDescription('just music by Brycen Addison | version '+version);
 
     for (const command in commands) {
         menu.addField(`${prefix}${command}`, commands[command]);
@@ -236,11 +249,17 @@ function help(message) {
     return message.channel.send(menu);
 }
 
-function list(message, serverQueue, page = 1, existingMessage = null) {
-    if (!serverQueue) {
-        return message.channel.send('nothins playin right now dawg');
+async function list(message, serverQueue, page = 1, existingMessage = null) {
+    if (existingMessage) {
+        const reactions = existingMessage.reactions.cache;
+        try {
+            for (const reaction of reactions.values()) {
+                await reaction.users.remove(message.author.id);
+            }
+        } catch (error) {
+            console.error('Failed to remove reactions.');
+        }
     }
-    message.reactions.removeAll();
     results = generateContent(serverQueue, page);
     page = results[2];
     const menu = new Discord.MessageEmbed()
@@ -249,21 +268,25 @@ function list(message, serverQueue, page = 1, existingMessage = null) {
     .setDescription(results[0])
     .setThumbnail(serverQueue.songs[0].thumbnail);
     if (results[1] > 1) menu.setFooter(`Page ${page}/${results[1]} | Use arrows to change page`);
-    ((existingMessage) ? existingMessage.edit(menu) : message.channel.send(menu)).then((message) => 
+    ((existingMessage) ? existingMessage.edit(menu) : message.channel.send(menu)).then(async (newmsg) => 
         {
-            if (results[1] > 1) {}
-            message.react("⬅️");
-            message.react("➡️");
-            const collector = message.createReactionCollector((reaction, user) => {
-                    return (!user.bot) && (reaction.emoji.name === "⬅️" || reaction.emoji.name === "➡️");
+            if (results[1] <= 1) return;
+
+            Promise.all([
+                newmsg.react("⬅️"),
+                newmsg.react("➡️")
+            ])
+                .catch(() => console.error('One of the emojis failed to react.'));
+            
+            const collector = newmsg.createReactionCollector((reaction, user) => {
+                    return (user.id == message.author.id) && (reaction.emoji.name === "⬅️" || reaction.emoji.name === "➡️");
                 }
-            ).once("collect", reaction => {
+            ).once("collect", async reaction => {
                 const chosen = reaction.emoji.name;
                 if(chosen === "⬅️"){
-                    list(message, serverQueue, page=page-1, existingMessage=message);
-                }else if(chosen === "➡️"){
-                    console.log("hi");
-                    list(message, serverQueue, page=page+1, existingMessage=message);
+                    await list(message, serverQueue, page=page-1, existingMessage=newmsg);
+                } else if(chosen === "➡️"){
+                    await list(message, serverQueue, page=page+1, existingMessage=newmsg);
                 }
             });
         }
@@ -301,7 +324,7 @@ function generateContent(serverQueue, page) {
         }
 
         if (content.length > 2048) {
-            message.channel.send("message too long blah blah over 2048 characters blah blah yeah ill add pages and shit maybe later but for now heres just the first 2048 characters");
+            message.channel.send("message too long blah blah over 2048 characters blah blah yeah ill add pages maybe later but for now heres just the first 2048 characters");
             content = content.substring(0,2048);
         }
     } else {
