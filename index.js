@@ -156,7 +156,7 @@ async function execute(message, songInfo, serverQueue, playlistSong = false) {
 		title: songInfo.videoDetails.title,
 		url: songInfo.videoDetails.video_url,
         length: parseInt(songInfo.videoDetails.lengthSeconds),
-        thumbnail: songInfo.videoDetails.thumbnail.thumbnails[0].url
+        thumbnail: songInfo.videoDetails.thumbnails[0].url
 	}
 
 	if (serverQueue) {

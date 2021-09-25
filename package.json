@@ -1,10 +1,10 @@
 {
   "name": "just-music",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "A no-bullshit music bot for Discord.",
   "main": "index.js",
   "dependencies": {
-    "@discordjs/opus": "^0.3.3",
+    "@discordjs/opus": "^0.5.3",
     "discord.js": "^12.5.1",
     "dotenv": "^8.2.0",
     "eslint": "^7.15.0",
@@ -15,7 +15,6 @@
     "googleapis": "^52.1.0",
     "ytdl-core": "^4.9.1"
   },
-  "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js"
