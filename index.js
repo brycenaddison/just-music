@@ -1,10 +1,12 @@
-const fs = require('fs');
-require('dotenv').config();
-const { Client, Collection, Intents, MessageEmbed } = require('discord.js');
-const { prefix, color } = require('./config.json');
-const { version } = require('./package.json');
-const ytdl = require('ytdl-core');
-const { google } = require('googleapis');
+import dotenv from 'dotenv';
+import { Client, Collection, Intents } from 'discord.js';
+import { readdirSync } from 'fs';
+import { google } from 'googleapis';
+import { loadJSON } from './src/utils/fs.js';
+
+const { version } = await loadJSON('./package.json', import.meta.url);
+
+dotenv.config();
 
 const client = new Client({
     intents: [
@@ -28,9 +30,9 @@ client.youtube = google.youtube({
 
 console.log('Loading commands...');
 client.commands = new Collection();
-const commandFiles = fs
-    .readdirSync('./commands')
-    .filter((file) => file.endsWith('.js'));
+const commandFiles = readdirSync('./commands').filter((file) =>
+    file.endsWith('.js')
+);
 
 for (const file of commandFiles) {
     const command = require(`./commands/${file}`);
@@ -70,15 +72,20 @@ client.on('interactionCreate', async (interaction) => {
     }
 });
 
-client.on('shardError', error => {
+client.on('shardError', (error) => {
     console.error('A websocket connection encountered an error:', error);
 });
 
-process.on('unhandledRejection', error => {
+process.on('unhandledRejection', (error) => {
     console.error('Unhandled promise rejection:', error);
 });
 
 client.on('error', console.warn);
+
+console.log('Logging in...');
+client.login(process.env.TOKEN);
+console.log('Logged in.');
+
 /*
 async function search(message, serverQueue) {
 
@@ -442,6 +449,3 @@ function shuffle(message, serverQueue) {
 }
 
 */
-console.log('Logging in...');
-client.login(process.env.TOKEN);
-console.log('Logged in.');
