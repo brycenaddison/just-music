@@ -1,0 +1,18 @@
+{   
+    "message": {
+        "on_ready": "test",
+        "reconnecting": "test"
+    },
+    "commands": {
+        "play": "Plays a song from YouTube search or link.",
+        "skip": "Skips the current song and starts playing the next one in queue.",
+        "stop": "Stops playing the song, empties the queue, and disconnects from the channel.",
+        "help": "Opens the help menu.",
+        "queue": "Shows all songs queued.",
+        "loop": "Loops the current song.",
+        "remove": "Removes an item at a specific spot in the queue.",
+        "pause": "Pauses music or unpauses it if already paused.",
+        "shuffle": "Shuffles the order of the queue.",
+        "clear": "Empties the queue."
+    }
+}
