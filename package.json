@@ -1,41 +1,45 @@
 {
-  "name": "just-music",
-  "version": "1.0.1",
-  "description": "A no-bullshit music bot for Discord.",
-  "main": "index.js",
-  "dependencies": {
-    "@discordjs/builders": "^0.6.0",
-    "@discordjs/opus": "^0.6.0",
-    "@discordjs/rest": "^0.1.0-canary.0",
-    "@discordjs/voice": "^0.6.0",
-    "discord-api-types": "^0.23.1",
-    "discord.js": "^13.1.0",
-    "dotenv": "^10.0.0",
-    "eslint": "^7.32.0",
-    "ffmpeg-static": "^4.4.0",
-    "google-auth-library": "^7.9.2",
-    "googleapis": "^87.0.0",
-    "libsodium-wrappers": "^0.7.9",
-    "opusscript": "^0.0.8",
-    "tweetnacl": "^1.0.3",
-    "ytdl-core": "^4.9.1"
-  },
-  "scripts": {
-    "start": "node ./index.js"
-  },
-  "author": "Brycen Addison",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/brycenaddison/just-music.git"
-  },
-  "keywords": [
-    "discord",
-    "music",
-    "bot"
-  ],
-  "bugs": {
-    "url": "https://github.com/brycenaddison/just-music/issues"
-  },
-  "homepage": "https://github.com/brycenaddison/just-music#readme"
+    "name": "just-music",
+    "version": "1.0.1",
+    "description": "A no-bullshit music bot for Discord.",
+    "main": "index.js",
+    "dependencies": {
+        "@discordjs/builders": "^0.6.0",
+        "@discordjs/opus": "^0.6.0",
+        "@discordjs/rest": "^0.1.0-canary.0",
+        "@discordjs/voice": "^0.6.0",
+        "discord-api-types": "^0.23.1",
+        "discord.js": "^13.1.0",
+        "dotenv": "^10.0.0",
+        "eslint": "^7.32.0",
+        "ffmpeg-static": "^4.4.0",
+        "google-auth-library": "^7.9.2",
+        "googleapis": "^87.0.0",
+        "libsodium-wrappers": "^0.7.9",
+        "opusscript": "^0.0.8",
+        "tweetnacl": "^1.0.3",
+        "ytdl-core": "^4.9.1"
+    },
+    "scripts": {
+        "start": "node ./index.js"
+    },
+    "author": "Brycen Addison",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/brycenaddison/just-music.git"
+    },
+    "keywords": [
+        "discord",
+        "music",
+        "bot"
+    ],
+    "bugs": {
+        "url": "https://github.com/brycenaddison/just-music/issues"
+    },
+    "homepage": "https://github.com/brycenaddison/just-music#readme",
+    "devDependencies": {
+        "eslint-config-prettier": "^8.3.0",
+        "prettier": "2.4.1"
+    }
 }
