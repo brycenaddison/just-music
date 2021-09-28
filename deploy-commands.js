@@ -1,12 +1,14 @@
-require('dotenv').config();
-const fs = require('fs');
-const { REST } = require('@discordjs/rest');
-const { Routes } = require('discord-api-types/v9');
+import dotenv from 'dotenv';
+import { REST } from '@discordjs/rest';
+import { Routes } from 'discord-api-types/v9';
+import { readdirSync } from 'fs';
+
+dotenv.config();
 
 const commands = [];
-const commandFiles = fs
-    .readdirSync('./commands')
-    .filter((file) => file.endsWith('.js'));
+const commandFiles = readdirSync('./commands').filter((file) =>
+    file.endsWith('.js')
+);
 
 for (const file of commandFiles) {
     const command = require(`./commands/${file}`);

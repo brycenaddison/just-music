@@ -1,21 +1,20 @@
-const { SlashCommandBuilder } = require('@discordjs/builders');
-const commands = require('./commands.json');
-const { displayTime } = require('../utils/displayTime');
-const { search } = require('../utils/search');
-const ytdl = require('ytdl-core');
-const {
+import { SlashCommandBuilder } from '@discordjs/builders';
+import {
+    AudioPlayerStatus,
     createAudioPlayer,
     createAudioResource,
-    joinVoiceChannel,
-    AudioPlayerStatus,
     entersState,
+    joinVoiceChannel,
     VoiceConnectionStatus
-} = require('@discordjs/voice');
-const { reset } = require('./stop');
+} from '@discordjs/voice';
+import ytdl from 'ytdl-core';
+import { play as _play } from '../constants.js';
+import { displayTime } from '../utils/displayTime';
+import { search } from '../utils/search';
+import { reset } from './stop';
 
 async function execute(interaction, songInfo, playlistSong = false) {
     const voiceChannel = interaction.member.voice.channel;
-
     const song = {
         title: songInfo.videoDetails.title,
         url: songInfo.videoDetails.video_url,
@@ -23,7 +22,6 @@ async function execute(interaction, songInfo, playlistSong = false) {
         thumbnail: songInfo.videoDetails.thumbnails[0].url,
         interaction: interaction
     };
-
     const serverQueue = interaction.client.queue.get(interaction.guild.id);
 
     if (serverQueue) {
@@ -62,10 +60,16 @@ async function execute(interaction, songInfo, playlistSong = false) {
             connection.on('error', console.warn);
 
             try {
-                await entersState(connection, VoiceConnectionStatus.Ready, 20e3);
+                await entersState(
+                    connection,
+                    VoiceConnectionStatus.Ready,
+                    20e3
+                );
             } catch (error) {
                 console.warn(error);
-                await interaction.followUp('Failed to join voice channel within 20 seconds, please try again later!');
+                await interaction.followUp(
+                    'Failed to join voice channel within 20 seconds, please try again later!'
+                );
                 return;
             }
 
@@ -74,8 +78,8 @@ async function execute(interaction, songInfo, playlistSong = false) {
                 queueContract.songs[0],
                 interaction.client.queue
             );
-        } catch (e) {
-            console.error(e);
+        } catch (err) {
+            console.error(err);
             reset(interaction.guild.id, interaction.client.queue);
             interaction.editReply('Unknown error encountered, check logs.');
             return false;
@@ -102,7 +106,6 @@ async function execute(interaction, songInfo, playlistSong = false) {
             .on('error', (error) => {
                 console.error(error);
                 reset(interaction.guild.id, interaction.client.queue);
-                return;
             });
     }
 }
@@ -111,8 +114,7 @@ function play(guildId, song, queue) {
     const serverQueue = queue.get(guildId);
 
     if (!song) {
-        reset(guildId, queue);
-        return;
+        return reset(guildId, queue);
     }
 
     try {
@@ -125,34 +127,31 @@ function play(guildId, song, queue) {
         );
 
         serverQueue.audioPlayer.play(resource);
-
         song.interaction.editReply(
             `Now playing: **${song.title}** \`${displayTime(song.length)}\``
         );
-    } catch (e) {
-        console.error(e);
+    } catch (err) {
+        console.error(err);
     }
 }
 
-module.exports = {
-    data: new SlashCommandBuilder()
-        .setName('play')
-        .setDescription(commands.play)
-        .addStringOption((option) =>
-            option
-                .setName('query')
-                .setDescription('Enter a YouTube search or link')
-                .setRequired(true)
-        ),
-    async execute(interaction) {
-        await interaction.deferReply();
+export const data = new SlashCommandBuilder()
+    .setName('play')
+    .setDescription(_play)
+    .addStringOption((option) =>
+        option
+            .setName('query')
+            .setDescription('Enter a YouTube search or link')
+            .setRequired(true)
+    );
 
+export async function execute(interaction) {
+    try {
+        await interaction.deferReply();
         const voiceChannel = interaction.member.voice.channel;
 
         if (!voiceChannel) {
-            return await interaction
-                .editReply('ur trolling join a channel first')
-                .catch(console.error);
+            return interaction.editReply('ur trolling join a channel first');
         }
 
         const permissions = voiceChannel.permissionsFor(
@@ -160,9 +159,7 @@ module.exports = {
         );
 
         if (!permissions.has('CONNECT') || !permissions.has('SPEAK')) {
-            return await interaction
-                .editReply('but like i need permissions bro')
-                .catch(console.error);
+            return interaction.editReply('but like i need permissions bro');
         }
 
         const songInfo = await search(
@@ -170,21 +167,9 @@ module.exports = {
             interaction.client.youtube
         );
 
-        if (songInfo instanceof Error) {
-            return await interaction
-                .editReply('Unknown error encountered, check logs.')
-                .catch(console.error);
-        }
-        if (songInfo === null) {
-            return await interaction
-                .editReply('No results found. Try using different keywords.')
-                .catch(console.error);
-        }
-        if (songInfo === undefined) {
-            return await interaction
-                .editReply('how the fuck do I use async')
-                .catch(console.error);
-        }
         await execute(interaction, songInfo);
+    } catch (err) {
+        console.error(err);
+        await interaction.editReply('Unknown error encountered, check logs.');
     }
-};
+}

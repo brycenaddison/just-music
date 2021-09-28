@@ -1,14 +1,13 @@
-const { SlashCommandBuilder } = require('@discordjs/builders');
-const commands = require('./commands.json');
+import { SlashCommandBuilder } from '@discordjs/builders';
+import { playlist } from '../constants.js';
 
-module.exports = {
-    data: new SlashCommandBuilder()
-        .setName('playlist')
-        .setDescription(commands.playlist),
-    async execute(interaction) {
-        await interaction.reply('Not yet implemented.');
-    }
-};
+export const data = new SlashCommandBuilder()
+    .setName('playlist')
+    .setDescription(playlist);
+
+export async function execute(interaction) {
+    await interaction.reply('Not yet implemented.');
+}
 
 /**
             const urlParams = new URLSearchParams(matches[10]);
