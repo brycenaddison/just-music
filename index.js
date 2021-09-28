@@ -1,68 +1,69 @@
-const fs = require('fs');
-require('dotenv').config();
-const { Client, Collection, Intents, MessageEmbed } = require('discord.js');
-const { prefix, color } = require('./config.json');
-const { version } = require('./package.json');
-const ytdl = require('ytdl-core');
-const { google } = require('googleapis');
+const fs = require("fs");
+require("dotenv").config();
+const { Client, Collection, Intents, MessageEmbed } = require("discord.js");
+const { prefix, color } = require("./config.json");
+const { version } = require("./package.json");
+const ytdl = require("ytdl-core");
+const { google } = require("googleapis");
 
-const client = new Client({ intents: [
-	Intents.FLAGS.GUILDS,
-	Intents.FLAGS.GUILD_MESSAGE_REACTIONS,
-	//    Discord.Intents.FLAGS.GUILD_PRESENCES,
-	//    Discord.Intents.FLAGS.GUILD_MESSAGES,
-	Intents.FLAGS.GUILD_VOICE_STATES,
-	Intents.FLAGS.GUILD_WEBHOOKS,
-	Intents.FLAGS.GUILD_INTEGRATIONS,
-] });
+const client = new Client({
+    intents: [
+        Intents.FLAGS.GUILDS,
+        Intents.FLAGS.GUILD_MESSAGE_REACTIONS,
+        //    Discord.Intents.FLAGS.GUILD_PRESENCES,
+        //    Discord.Intents.FLAGS.GUILD_MESSAGES,
+        Intents.FLAGS.GUILD_VOICE_STATES,
+        Intents.FLAGS.GUILD_WEBHOOKS,
+        Intents.FLAGS.GUILD_INTEGRATIONS
+    ]
+});
 
 client.queue = new Map();
 
 client.youtube = google.youtube({
-	version: 'v3',
-	auth: process.env.API_KEY,
+    version: "v3",
+    auth: process.env.API_KEY
 });
 
 client.commands = new Collection();
-const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
+const commandFiles = fs
+    .readdirSync("./commands")
+    .filter((file) => file.endsWith(".js"));
 
 for (const file of commandFiles) {
-	const command = require(`./commands/${file}`);
-	// Set a new item in the Collection
-	// With the key as the command name and the value as the exported module
-	client.commands.set(command.data.name, command);
+    const command = require(`./commands/${file}`);
+    // Set a new item in the Collection
+    // With the key as the command name and the value as the exported module
+    client.commands.set(command.data.name, command);
 }
 
-client.once('ready', () => {
-	client.user.setActivity(`music | !help | ${version}`,
-		{ type: 'PLAYING' },
-	);
-	console.log(`just music version ${version} loaded`);
+client.once("ready", () => {
+    client.user.setActivity(`music | !help | ${version}`, { type: "PLAYING" });
+    console.log(`just music version ${version} loaded`);
 });
 
-client.once('reconnecting', () => {
-	console.log('Reconnecting!');
+client.once("reconnecting", () => {
+    console.log("Reconnecting!");
 });
 
-client.once('disconnect', () => {
-	console.log('Disconnect!');
+client.once("disconnect", () => {
+    console.log("Disconnect!");
 });
 
-client.on('interactionCreate', async interaction => {
-	if (!interaction.isCommand()) return;
+client.on("interactionCreate", async (interaction) => {
+    if (!interaction.isCommand()) return;
 
-	const command = client.commands.get(interaction.commandName);
+    const command = client.commands.get(interaction.commandName);
 
-	if (!command) return;
+    if (!command) return;
 
-	try {
-		await command.execute(interaction);
-	}
-	catch (error) {
-		console.error(error);
-		// await interaction.reply({ content: 'There was an error while executing this command.', ephemeral: true })
-		//	.catch(console.error);
-	}
+    try {
+        await command.execute(interaction);
+    } catch (error) {
+        console.error(error);
+        // await interaction.reply({ content: 'There was an error while executing this command.', ephemeral: true })
+        //	.catch(console.error);
+    }
 });
 
 /*
