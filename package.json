@@ -20,8 +20,13 @@
         "tweetnacl": "^1.0.3",
         "ytdl-core": "^4.9.1"
     },
+    "devDependencies": {
+        "eslint-config-prettier": "^8.3.0",
+        "prettier": "2.4.1"
+    },
     "scripts": {
-        "start": "node ./index.js"
+        "start": "node ./index.js",
+        "lint": "prettier --check . && eslint ."
     },
     "author": "Brycen Addison",
     "license": "MIT",
@@ -37,9 +42,5 @@
     "bugs": {
         "url": "https://github.com/brycenaddison/just-music/issues"
     },
-    "homepage": "https://github.com/brycenaddison/just-music#readme",
-    "devDependencies": {
-        "eslint-config-prettier": "^8.3.0",
-        "prettier": "2.4.1"
-    }
+    "homepage": "https://github.com/brycenaddison/just-music#readme"
 }
