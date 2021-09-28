@@ -20,11 +20,13 @@ const client = new Client({
 
 client.queue = new Map();
 
+console.log('Initializing API...');
 client.youtube = google.youtube({
     version: 'v3',
     auth: process.env.API_KEY
 });
 
+console.log('Loading commands...');
 client.commands = new Collection();
 const commandFiles = fs
     .readdirSync('./commands')
@@ -35,7 +37,9 @@ for (const file of commandFiles) {
     // Set a new item in the Collection
     // With the key as the command name and the value as the exported module
     client.commands.set(command.data.name, command);
+    console.log(`Loaded ${command.data.name}`);
 }
+console.log('All commands are loaded.');
 
 client.once('ready', () => {
     client.user.setActivity(`music | !help | ${version}`, { type: 'PLAYING' });
@@ -66,6 +70,15 @@ client.on('interactionCreate', async (interaction) => {
     }
 });
 
+client.on('shardError', error => {
+    console.error('A websocket connection encountered an error:', error);
+});
+
+process.on('unhandledRejection', error => {
+    console.error('Unhandled promise rejection:', error);
+});
+
+client.on('error', console.warn);
 /*
 async function search(message, serverQueue) {
 
@@ -429,4 +442,6 @@ function shuffle(message, serverQueue) {
 }
 
 */
+console.log('Logging in...');
 client.login(process.env.TOKEN);
+console.log('Logged in.');

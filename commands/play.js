@@ -7,7 +7,9 @@ const {
     createAudioPlayer,
     createAudioResource,
     joinVoiceChannel,
-    AudioPlayerStatus
+    AudioPlayerStatus,
+    entersState,
+    VoiceConnectionStatus
 } = require('@discordjs/voice');
 const { reset } = require('./stop');
 
@@ -51,11 +53,21 @@ async function execute(interaction, songInfo, playlistSong = false) {
         queueContract.songs.push(song);
 
         try {
-            joinVoiceChannel({
+            const connection = joinVoiceChannel({
                 channelId: voiceChannel.id,
                 guildId: voiceChannel.guild.id,
                 adapterCreator: voiceChannel.guild.voiceAdapterCreator
             }).subscribe(queueContract.audioPlayer);
+
+            connection.on('error', console.warn);
+
+            try {
+                await entersState(connection, VoiceConnectionStatus.Ready, 20e3);
+            } catch (error) {
+                console.warn(error);
+                await interaction.followUp('Failed to join voice channel within 20 seconds, please try again later!');
+                return;
+            }
 
             play(
                 interaction.guild.id,
