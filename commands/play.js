@@ -3,7 +3,8 @@ const commands = require('./commands.json');
 const { displayTime } = require('../utils/displayTime');
 const { search } = require('../utils/search');
 const ytdl = require('ytdl-core');
-const { createAudioPlayer, createAudioResource, joinVoiceChannel, getVoiceConnection, AudioPlayerStatus } = require('@discordjs/voice');
+const { createAudioPlayer, createAudioResource, joinVoiceChannel, AudioPlayerStatus } = require('@discordjs/voice');
+const { reset } = require('./stop');
 
 async function execute(interaction, songInfo, playlistSong = false) {
 
@@ -41,49 +42,44 @@ async function execute(interaction, songInfo, playlistSong = false) {
 		queueContract.songs.push(song);
 
 		try {
-			const connection = joinVoiceChannel({
+			joinVoiceChannel({
 				channelId: voiceChannel.id,
 				guildId: voiceChannel.guild.id,
 				adapterCreator: voiceChannel.guild.voiceAdapterCreator,
-			});
-			connection.subscribe(queueContract.audioPlayer);
+			}).subscribe(queueContract.audioPlayer);
 
-			queueContract.audioPlayer.on('stateChange', (oldState, newState) => {
-				if (newState.status === AudioPlayerStatus.Idle && oldState.status !== AudioPlayerStatus.Idle) {
-					if (queueContract.loop) {
-						queueContract.loop_count++;
-					}
-					else {
-						queueContract.songs.shift();
-					}
-					play(interaction.guild, queueContract.songs[0], interaction.client.queue);
-				}
-			}).on('error', error => {
-				console.error(error);
-				connection.destroy();
-				interaction.client.queue.delete(interaction.guild.id);
-				return;
-			});
-
-			play(interaction.guild, queueContract.songs[0], interaction.client.queue);
-
+			play(interaction.guild.id, queueContract.songs[0], interaction.client.queue);
 		}
 		catch (e) {
 			console.error(e);
-			getVoiceConnection(interaction.guild.id).destroy();
-			interaction.client.queue.delete(interaction.guild.id);
+			reset(interaction.guild.id, interaction.client.queue);
 			interaction.editReply('Unknown error encountered, check logs.');
 			return false;
 		}
+
+		queueContract.audioPlayer.on('stateChange', (oldState, newState) => {
+			if (newState.status === AudioPlayerStatus.Idle && oldState.status !== AudioPlayerStatus.Idle) {
+				if (queueContract.loop) {
+					queueContract.loop_count++;
+				}
+				else {
+					queueContract.songs.shift();
+				}
+				play(interaction.guild.id, queueContract.songs[0], interaction.client.queue);
+			}
+		}).on('error', error => {
+			console.error(error);
+			reset(interaction.guild.id, interaction.client.queue);
+			return;
+		});
 	}
 }
 
-function play(guild, song, queue) {
-	const serverQueue = queue.get(guild.id);
+function play(guildId, song, queue) {
+	const serverQueue = queue.get(guildId);
 
 	if (!song) {
-		getVoiceConnection(guild.id).destroy();
-		queue.delete(guild.id);
+		reset(guildId, queue);
 		return;
 	}
 
