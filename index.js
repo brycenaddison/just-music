@@ -1,9 +1,7 @@
 const fs = require('fs');
 require('dotenv').config();
-const { Client, Collection, Intents, MessageEmbed } = require('discord.js');
-const { prefix, color } = require('./config.json');
+const { Client, Collection, Intents } = require('discord.js');
 const { version } = require('./package.json');
-const ytdl = require('ytdl-core');
 const { google } = require('googleapis');
 
 const client = new Client({
