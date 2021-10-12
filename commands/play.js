@@ -13,7 +13,7 @@ const {
 } = require('@discordjs/voice');
 const { reset } = require('./stop');
 
-async function execute(interaction, songInfo, playlistSong = false) {
+async function queueSong(interaction, songInfo, playlistSong = false) {
     const voiceChannel = interaction.member.voice.channel;
 
     const song = {
@@ -76,7 +76,7 @@ async function execute(interaction, songInfo, playlistSong = false) {
                 return;
             }
 
-            play(
+            playSong(
                 interaction.guild.id,
                 queueContract.songs[0],
                 interaction.client.queue
@@ -99,7 +99,7 @@ async function execute(interaction, songInfo, playlistSong = false) {
                     } else {
                         queueContract.songs.shift();
                     }
-                    play(
+                    playSong(
                         interaction.guild.id,
                         queueContract.songs[0],
                         interaction.client.queue
@@ -114,7 +114,7 @@ async function execute(interaction, songInfo, playlistSong = false) {
     }
 }
 
-function play(guildId, song, queue) {
+function playSong(guildId, song, queue) {
     const serverQueue = queue.get(guildId);
 
     if (!song) {
@@ -142,6 +142,7 @@ function play(guildId, song, queue) {
 }
 
 module.exports = {
+    queueSong: queueSong,
     data: new SlashCommandBuilder()
         .setName('play')
         .setDescription(commands.play)
@@ -190,6 +191,6 @@ module.exports = {
                 .followUp('how the fuck do I use async')
                 .catch(console.error);
         }
-        await execute(interaction, songInfo);
+        await queueSong(interaction, songInfo);
     }
 };
