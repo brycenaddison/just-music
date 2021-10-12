@@ -6,7 +6,7 @@ module.exports = {
         .setName('playlist')
         .setDescription(commands.playlist),
     async execute(interaction) {
-        await interaction.reply('Not yet implemented.');
+        await interaction.followUp('Not yet implemented.');
     }
 };
 

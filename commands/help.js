@@ -1,6 +1,6 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const commands = require('./commands.json');
-const { prefix, color } = require('../config.json');
+const { color } = require('../config.json');
 const { version } = require('../package.json');
 const { MessageEmbed } = require('discord.js');
 
@@ -17,9 +17,11 @@ module.exports = {
             );
 
         for (const command in commands) {
-            menu.addField(`${prefix}${command}`, commands[command]);
+            menu.addField(`/${command}`, commands[command]);
         }
 
-        return await interaction.reply({ embeds: [menu] }).catch(console.error);
+        return await interaction
+            .followUp({ embeds: [menu] })
+            .catch(console.error);
     }
 };

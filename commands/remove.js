@@ -6,6 +6,6 @@ module.exports = {
         .setName('remove')
         .setDescription(commands.remove),
     async execute(interaction) {
-        await interaction.reply('Not yet implemented.');
+        await interaction.followUp('Not yet implemented.');
     }
 };

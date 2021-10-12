@@ -62,6 +62,7 @@ client.on('interactionCreate', async (interaction) => {
     if (!command) return;
 
     try {
+        await interaction.deferReply();
         await command.execute(interaction);
     } catch (error) {
         console.error(error);
@@ -70,188 +71,16 @@ client.on('interactionCreate', async (interaction) => {
     }
 });
 
-client.on('shardError', error => {
+client.on('shardError', (error) => {
     console.error('A websocket connection encountered an error:', error);
 });
 
-process.on('unhandledRejection', error => {
+process.on('unhandledRejection', (error) => {
     console.error('Unhandled promise rejection:', error);
 });
 
 client.on('error', console.warn);
 /*
-async function search(message, serverQueue) {
-
-	const voiceChannel = message.member.voice.channel;
-	if (!voiceChannel) {return message.channel.send('ur trolling join a channel first');}
-	const permissions = voiceChannel.permissionsFor(message.client.user);
-	if (!permissions.has('CONNECT') || !permissions.has('SPEAK')) {
-		return message.channel.send('but like i need permissions bro');
-	}
-
-	const args = message.content.split(' ');
-	args.shift();
-
-	const LINK_DETECTION_REGEX = /(([a-z]+:\/\/)?(([a-z0-9-]+\.)+([a-z]{2}|aero|arpa|biz|com|coop|edu|gov|info|int|jobs|mil|museum|name|nato|net|org|pro|travel|local|internal))(:[0-9]{1,5})?(\/[a-z0-9_\-.~]+)*(\/([a-z0-9_\-.]*)(\?[a-z0-9+_\-.%=&amp;]*)?)?(#[a-zA-Z0-9!$&'()*+.=-_~:@/?]*)?)(\s+|$)/gi;
-	const matches = LINK_DETECTION_REGEX.exec(args[0]);
-
-	if (matches != null) {
-
-		try {
-
-			const songInfo = await ytdl.getInfo(matches[0]);
-			execute(message, songInfo, serverQueue);
-			const urlParams = new URLSearchParams(matches[10]);
-
-			if (urlParams.has('list')) {
-
-				const playlistId = urlParams.get('list');
-				const origVideoId = urlParams.get('v');
-				let count = 0;
-
-				youtube.playlistItems.list({
-					'part': [
-						'snippet',
-					],
-					'maxResults': 50,
-					'playlistId': playlistId,
-				}).then(
-					async function(response) {
-						response.data.items.forEach(async function(item, index) {
-							const itemId = item.snippet.resourceId['videoId'];
-							if (itemId != origVideoId) {
-								count++;
-								const playlistSongInfo = await ytdl.getInfo('https://youtube.com/watch?v=' + itemId);
-
-								await execute(message, playlistSongInfo, queue.get(message.guild.id), true);
-							}
-						});
-						return count;
-					},
-					function(err) {
-						console.error('Execute error', err);
-					},
-				).then(async function(finalCount) {
-					return await message.channel.send(`Adding \`${finalCount + 1}\` songs from the playlist to the queue.`);
-				});
-
-			}
-
-		}
-		catch (err) {
-			console.error(err);
-			return message.channel.send('Unknown error encountered. Check logs.');
-		}
-
-	}
-	else {
-
-		const query = args.join(' ');
-
-		youtube.search.list(
-			{
-				part:'snippet',
-				q: query,
-				maxResults: 1,
-			},
-			async function(err, data) {
-				if (err) {
-					console.error(err);
-					return message.channel.send('Unknown error encountered, check logs.');
-				}
-				if (data) {
-					if (data.data.items.length === 1) {
-						try {
-							const songInfo = await ytdl.getInfo('https://youtube.com/watch?v=' + data.data.items[0].id.videoId);
-							execute(message, songInfo, serverQueue);
-						}
-						catch (err) {
-							console.error(err);
-						}
-					}
-					else {
-						return message.channel.send('No results found. Try using different keywords.');
-					}
-				}
-			},
-		);
-	}
-}
-
-async function execute(message, songInfo, serverQueue, playlistSong = false) {
-
-	const voiceChannel = message.member.voice.channel;
-	if (!voiceChannel) {
-		return message.channel.send('ur trolling join a channel first');
-	}
-	const permissions = voiceChannel.permissionsFor(message.client.user);
-	if (!permissions.has('CONNECT') || !permissions.has('SPEAK')) {
-		return message.channel.send('give me permissions fucktard');
-	}
-
-	const song = {
-		title: songInfo.videoDetails.title,
-		url: songInfo.videoDetails.video_url,
-		length: parseInt(songInfo.videoDetails.lengthSeconds),
-		thumbnail: songInfo.videoDetails.thumbnails[0].url,
-	};
-
-	if (serverQueue) {
-		serverQueue.songs.push(song);
-		if (!playlistSong) return message.channel.send(`**${song.title}** \`${displayTime(song.length)}\` was added to the queue at position \`${serverQueue.songs.length - 1}\`.`);
-	}
-	else {
-		const queueContract = {
-			textChannel: message.channel,
-			voiceChannel: voiceChannel,
-			connection: null,
-			songs: [],
-			volume: 5,
-			loop: false,
-			loop_count: 0,
-			playing: true,
-			dispatcher: null,
-		};
-		queue.set(message.guild.id, queueContract);
-		queueContract.songs.push(song);
-
-		try {
-			const connection = await message.member.voice.channel.join();
-			queueContract.connection = connection;
-			play(message.guild, queueContract.songs[0]);
-		}
-		catch (e) {
-			console.error(e);
-			queue.delete(message.guild.id);
-			message.channel.send('Unknown error encountered, check logs.');
-			return false;
-		}
-	}
-}
-
-function play(guild, song) {
-	const serverQueue = queue.get(guild.id);
-	if (!song) {
-		serverQueue.voiceChannel.leave();
-		queue.delete(guild.id);
-		return;
-	}
-
-	serverQueue.dispatcher = serverQueue.connection
-		.play(ytdl(song.url, { filter: 'audioonly', quality: 'highestaudio', highWaterMark: 512 * 1024 * 1024 }))
-		.on('finish', () => {
-			if (serverQueue.loop) {
-				serverQueue.loop_count++;
-			}
-			else {
-				serverQueue.songs.shift();
-			}
-			play(guild, serverQueue.songs[0]);
-		})
-		.on('error', error => console.error(error));
-	serverQueue.dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
-	serverQueue.textChannel.send(`Now playing: **${song.title}** \`${displayTime(song.length)}\``);
-}
 
 function skip(message, serverQueue) {
 	if (!message.member.voice.channel) {return message.channel.send('you kinda have to be in a channel bud, no other way to put it');}
@@ -263,14 +92,6 @@ function skip(message, serverQueue) {
 		console.error(err);
 	}
 	return message.channel.send(`Skipped **${serverQueue.songs[0].title}** \`${displayTime(serverQueue.songs[0].length)}\``);
-}
-
-function stop(message, serverQueue) {
-	if (!message.member.voice.channel) {return message.channel.send('you kinda have to be in a channel bud, no other way to put it');}
-	if (!serverQueue) {return message.channel.send('now tell me how im supposed to stop playing if nothing is playing');}
-	serverQueue.songs = [];
-	serverQueue.connection.dispatcher.end();
-	return message.channel.send('k bye');
 }
 
 async function list(message, serverQueue, page = 1, existingMessage = null) {

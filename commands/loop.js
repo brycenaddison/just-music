@@ -10,21 +10,19 @@ module.exports = {
 
         if (!serverQueue) {
             return await interaction
-                .reply('nothins playin right now dawg')
+                .followUp('nothins playin right now dawg')
                 .catch(console.error);
         }
 
         if (!serverQueue.loop) {
             serverQueue.loop = true;
             return await interaction
-                .reply('Looping enabled.')
+                .followUp('Looping enabled.')
                 .catch(console.error);
-        }
-
-        if (!serverQueue.loop) {
-            serverQueue.loop = true;
+        } else {
+            serverQueue.loop = false;
             return await interaction
-                .reply('Looping disabled.')
+                .followUp('Looping disabled.')
                 .catch(console.error);
         }
     }

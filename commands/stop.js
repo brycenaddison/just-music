@@ -20,11 +20,11 @@ module.exports = {
         const serverQueue = interaction.client.queue.get(interaction.guild.id);
 
         if (!serverQueue) {
-            return await interaction.reply('nothins playin right now dawg');
+            return await interaction.followUp('nothins playin right now dawg');
         }
 
         this.reset(interaction.guild.id, interaction.client.queue);
 
-        return await interaction.reply('k bye').catch(console.error);
+        return await interaction.followUp('k bye').catch(console.error);
     }
 };

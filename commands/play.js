@@ -30,7 +30,7 @@ async function execute(interaction, songInfo, playlistSong = false) {
         serverQueue.songs.push(song);
         if (!playlistSong) {
             return await interaction
-                .editReply(
+                .followUp(
                     `**${song.title}** \`${displayTime(
                         song.length
                     )}\` was added to the queue at position \`${
@@ -57,15 +57,22 @@ async function execute(interaction, songInfo, playlistSong = false) {
                 channelId: voiceChannel.id,
                 guildId: voiceChannel.guild.id,
                 adapterCreator: voiceChannel.guild.voiceAdapterCreator
-            }).subscribe(queueContract.audioPlayer);
+            });
 
+            connection.subscribe(queueContract.audioPlayer);
             connection.on('error', console.warn);
 
             try {
-                await entersState(connection, VoiceConnectionStatus.Ready, 20e3);
+                await entersState(
+                    connection,
+                    VoiceConnectionStatus.Ready,
+                    20e3
+                );
             } catch (error) {
                 console.warn(error);
-                await interaction.followUp('Failed to join voice channel within 20 seconds, please try again later!');
+                await interaction.followUp(
+                    'Failed to join voice channel within 20 seconds, please try again later!'
+                );
                 return;
             }
 
@@ -77,7 +84,7 @@ async function execute(interaction, songInfo, playlistSong = false) {
         } catch (e) {
             console.error(e);
             reset(interaction.guild.id, interaction.client.queue);
-            interaction.editReply('Unknown error encountered, check logs.');
+            interaction.followUp('Unknown error encountered, check logs.');
             return false;
         }
 
@@ -120,13 +127,13 @@ function play(guildId, song, queue) {
             ytdl(song.url, {
                 filter: 'audioonly',
                 quality: 'highestaudio',
-                highWaterMark: 512 * 1024 * 1024
+                highWaterMark: 32 * 1024 * 1024
             })
         );
 
         serverQueue.audioPlayer.play(resource);
 
-        song.interaction.editReply(
+        song.interaction.followUp(
             `Now playing: **${song.title}** \`${displayTime(song.length)}\``
         );
     } catch (e) {
@@ -145,13 +152,11 @@ module.exports = {
                 .setRequired(true)
         ),
     async execute(interaction) {
-        await interaction.deferReply();
-
         const voiceChannel = interaction.member.voice.channel;
 
         if (!voiceChannel) {
             return await interaction
-                .editReply('ur trolling join a channel first')
+                .followUp('ur trolling join a channel first')
                 .catch(console.error);
         }
 
@@ -161,7 +166,7 @@ module.exports = {
 
         if (!permissions.has('CONNECT') || !permissions.has('SPEAK')) {
             return await interaction
-                .editReply('but like i need permissions bro')
+                .followUp('but like i need permissions bro')
                 .catch(console.error);
         }
 
@@ -172,17 +177,17 @@ module.exports = {
 
         if (songInfo instanceof Error) {
             return await interaction
-                .editReply('Unknown error encountered, check logs.')
+                .followUp('Unknown error encountered, check logs.')
                 .catch(console.error);
         }
         if (songInfo === null) {
             return await interaction
-                .editReply('No results found. Try using different keywords.')
+                .followUp('No results found. Try using different keywords.')
                 .catch(console.error);
         }
         if (songInfo === undefined) {
             return await interaction
-                .editReply('how the fuck do I use async')
+                .followUp('how the fuck do I use async')
                 .catch(console.error);
         }
         await execute(interaction, songInfo);
