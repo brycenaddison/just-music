@@ -1,6 +1,6 @@
 {
     "name": "just-music",
-    "version": "1.0.1",
+    "version": "2.0.0",
     "description": "A no-bullshit music bot for Discord.",
     "main": "index.js",
     "dependencies": {

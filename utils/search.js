@@ -1,11 +1,11 @@
 const ytdl = require('ytdl-core');
 
 module.exports = {
-    link_regex:
-        /(([a-z]+:\/\/)?(([a-z0-9-]+\.)+([a-z]{2}|aero|arpa|biz|com|coop|edu|gov|info|int|jobs|mil|museum|name|nato|net|org|pro|travel|local|internal))(:[0-9]{1,5})?(\/[a-z0-9_\-.~]+)*(\/([a-z0-9_\-.]*)(\?[a-z0-9+_\-.%=&amp;]*)?)?(#[a-zA-Z0-9!$&'()*+.=-_~:@/?]*)?)(\s+|$)/gi,
     search: async (query, youtube) => {
         return new Promise((resolve) => {
-            const matches = this.link_regex.exec(query);
+            const regex =
+                /(([a-z]+:\/\/)?(([a-z0-9-]+\.)+([a-z]{2}|aero|arpa|biz|com|coop|edu|gov|info|int|jobs|mil|museum|name|nato|net|org|pro|travel|local|internal))(:[0-9]{1,5})?(\/[a-z0-9_\-.~]+)*(\/([a-z0-9_\-.]*)(\?[a-z0-9+_\-.%=&amp;]*)?)?(#[a-zA-Z0-9!$&'()*+.=-_~:@/?]*)?)(\s+|$)/gi;
+            const matches = regex.exec(query);
 
             if (matches != null) {
                 try {
@@ -21,7 +21,8 @@ module.exports = {
                 {
                     part: 'snippet',
                     q: query,
-                    maxResults: 1
+                    maxResults: 1,
+                    type: 'video'
                 },
                 async function (err, data) {
                     if (err) {

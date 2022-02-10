@@ -40,7 +40,7 @@ for (const file of commandFiles) {
 console.log('All commands are loaded.');
 
 client.once('ready', () => {
-    client.user.setActivity(`music | !help | ${version}`, { type: 'PLAYING' });
+    client.user.setActivity(`music | /help | ${version}`, { type: 'PLAYING' });
     console.log(`just music version ${version} loaded`);
 });
 
@@ -78,6 +78,12 @@ process.on('unhandledRejection', (error) => {
 });
 
 client.on('error', console.warn);
+
+process.on('SIGINT', () => {
+    console.log('Closing just music...');
+    client.destroy();
+    process.exit();
+});
 /*
 
 function skip(message, serverQueue) {
