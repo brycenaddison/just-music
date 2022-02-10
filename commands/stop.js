@@ -9,11 +9,8 @@ module.exports = {
     reset(guildId, queue) {
         if (queue.get(guildId)) {
             queue.get(guildId).audioPlayer.stop();
-            console.log('Audio player stopped');
             getVoiceConnection(guildId).destroy();
-            console.log('Voice connection destroyed');
             queue.delete(guildId);
-            console.log('Server queue deleted');
         }
     },
     async execute(interaction) {

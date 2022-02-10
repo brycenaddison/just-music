@@ -17,14 +17,38 @@ for (const file of commandFiles) {
 
 const rest = new REST({ version: '9' }).setToken(process.env.TOKEN);
 
-if (process.argv.length > 1 && process.argv[1] === '-g') {
-    rest.put(Routes.applicationGuildCommands(process.env.CLIENT_ID), {
+if (process.argv.length > 1 && process.argv[2] === '-g') {
+    rest.put(Routes.applicationCommands(process.env.CLIENT_ID), {
         body: commands
     })
         .then(() =>
             console.log(
                 'Successfully registered application commands GLOBALLY.'
             )
+        )
+        .catch(console.error);
+} if (process.argv.length > 1 && process.argv[2] === '-gp') {
+    const prest = new REST({ version: '9' }).setToken(process.env.PTOKEN);
+    prest.put(Routes.applicationCommands(process.env.PCLIENT_ID), {
+        body: commands
+    })
+        .then(() =>
+            console.log(
+                'Successfully registered application commands GLOBALLY on PRODUCTION.'
+            )
+        )
+        .catch(console.error);
+} else if (process.argv.length > 1 && process.argv[2] === '-p') {
+    const prest = new REST({ version: '9' }).setToken(process.env.PTOKEN);
+    prest.put(
+        Routes.applicationGuildCommands(
+            process.env.PCLIENT_ID,
+            process.env.PGUILD_ID
+        ),
+        { body: commands }
+    )
+        .then(() =>
+            console.log('Successfully registered application commands on Ptest.')
         )
         .catch(console.error);
 } else {
