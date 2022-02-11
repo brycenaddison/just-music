@@ -78,6 +78,24 @@ module.exports = {
                 .setRequired(true)
         ),
     async execute(interaction) {
+        const voiceChannel = interaction.member.voice.channel;
+
+        if (!voiceChannel) {
+            return await interaction
+                .followUp('ur trolling join a channel first')
+                .catch(console.error);
+        }
+
+        const permissions = voiceChannel.permissionsFor(
+            interaction.client.user
+        );
+
+        if (!permissions.has('CONNECT') || !permissions.has('SPEAK')) {
+            return await interaction
+                .followUp('Unable to join your channel. Make sure this bot has permission to join it!')
+                .catch(console.error);
+        }
+
         const response = await playPlaylist(interaction);
         return await send(interaction, response);
     }

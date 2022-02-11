@@ -8,9 +8,6 @@ const { reset } = require('./commands/stop');
 const client = new Client({
     intents: [
         Intents.FLAGS.GUILDS,
-        Intents.FLAGS.GUILD_MESSAGE_REACTIONS,
-        //    Discord.Intents.FLAGS.GUILD_PRESENCES,
-        //    Discord.Intents.FLAGS.GUILD_MESSAGES,
         Intents.FLAGS.GUILD_VOICE_STATES,
         Intents.FLAGS.GUILD_WEBHOOKS,
         Intents.FLAGS.GUILD_INTEGRATIONS

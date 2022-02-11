@@ -167,7 +167,7 @@ module.exports = {
 
         if (!permissions.has('CONNECT') || !permissions.has('SPEAK')) {
             return await interaction
-                .followUp('but like i need permissions bro')
+                .followUp('Unable to join your channel. Make sure this bot has permission to join it!')
                 .catch(console.error);
         }
 

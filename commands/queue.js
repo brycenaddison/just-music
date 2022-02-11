@@ -1,80 +1,83 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const { MessageEmbed } = require('discord.js');
+const {
+    MessageEmbed,
+    MessageActionRow,
+    MessageButton,
+    MessageComponentInteraction
+} = require('discord.js');
 const { displayTime } = require('../utils/displayTime');
 const { color } = require('../config.json');
 const commands = require('./commands.json');
 
-async function list(interaction, page = 1, existingMessage = null) {
+async function list(interaction, page = 1) {
     const serverQueue = interaction.client.queue.get(interaction.guild.id);
 
-    if (!serverQueue) {
-        return await interaction
-            .followUp('nothins playin right now dawg')
-            .catch(console.error);
-    }
-
-    if (existingMessage) {
-        const reactions = existingMessage.reactions.cache;
-        try {
-            for (const reaction of reactions.values()) {
-                await reaction.users.remove(interaction.user.id);
-            }
-        } catch (error) {
-            console.error('Failed to remove reactions.');
-        }
-    }
+    if (!serverQueue) interaction.message.delete();
 
     const results = generateContent(serverQueue, page);
     page = results[2];
+
     const menu = new MessageEmbed()
         .setColor(color)
         .setTitle('Current Queue')
         .setDescription(results[0])
         .setThumbnail(serverQueue.songs[0].thumbnail);
+
+    const row = new MessageActionRow().addComponents(
+        new MessageButton()
+            .setCustomId('delete')
+            .setLabel('Delete')
+            .setStyle('DANGER')
+    );
+
     if (results[1] > 1) {
-        menu.setFooter(
-            { text: `Page ${page}/${results[1]} | Use arrows to change page` }
+        menu.setFooter({
+            text: `Page ${page}/${results[1]} | Use buttons to change page`
+        });
+        row.addComponents(
+            new MessageButton()
+                .setCustomId('left')
+                .setLabel('Left')
+                .setStyle('SECONDARY')
+                .setDisabled(page == 1),
+            new MessageButton()
+                .setCustomId('right')
+                .setLabel('Right')
+                .setStyle('SECONDARY')
+                .setDisabled(page == results[1])
         );
     }
-    (existingMessage
-        ? existingMessage.edit(menu)
-        : interaction.followUp({ embeds: [menu] })
-    ).then(async (newmsg) => {
-        if (results[1] <= 1) return;
 
-        Promise.all([newmsg.react('⬅️'), newmsg.react('➡️')]).catch(() =>
-            console.error('One of the emojis failed to react.')
-        );
+    const content = { embeds: [menu], components: [row] };
 
-        newmsg
-            .createReactionCollector((reaction, user) => {
-                return (
-                    user.id == interaction.user.id &&
-                    (reaction.emoji.name === '⬅️' ||
-                        reaction.emoji.name === '➡️')
-                );
-            })
-            .once('collect', async (reaction) => {
-                const chosen = reaction.emoji.name;
-                if (chosen === '⬅️') {
-                    await list(
-                        interaction,
-                        (page = page - 1),
-                        (existingMessage = newmsg)
-                    );
-                } else if (chosen === '➡️') {
-                    await list(
-                        interaction,
-                        (page = page + 1),
-                        (existingMessage = newmsg)
-                    );
-                }
-            });
-    });
+    if (interaction instanceof MessageComponentInteraction) {
+        return await interaction.update(content).catch(console.error);
+    }
+
+    return await interaction
+        .followUp(content)
+        .then((newmsg) => {
+            newmsg
+                .createMessageComponentCollector({
+                    filter: (i) => {
+                        return i.user.id == interaction.user.id;
+                    }
+                })
+                .on('collect', async (i) => {
+                    if (i.customId == 'left') {
+                        await list(i, (page = page - 1));
+                    } else if (i.customId == 'right') {
+                        await list(i, (page = page + 1));
+                    } else if (i.customId == 'delete') {
+                        await newmsg.delete();
+                    }
+                });
+        })
+        .catch(console.error);
 }
 
 function generateContent(serverQueue, page) {
-    if (page < 1) page++;
+    if (page < 1) page = 1;
 
     let content = '';
     const pages = [];
@@ -108,7 +111,7 @@ function generateContent(serverQueue, page) {
             totalTime += serverQueue.songs[i].length;
             inQueue++;
         }
-        while (page > pages.length) page--;
+        if (page > pages.length) page = pages.length;
         if (pages[page - 1]) content += pages[page - 1];
         let s = '';
         if (queueLength > 2) s = 's';
@@ -144,6 +147,14 @@ module.exports = {
         .setName('queue')
         .setDescription(commands.queue),
     async execute(interaction) {
-        await list(interaction);
+        const serverQueue = interaction.client.queue.get(interaction.guild.id);
+
+        if (!serverQueue) {
+            return await interaction
+                .followUp('nothins playin right now dawg')
+                .catch(console.error);
+        }
+
+        return await list(interaction);
     }
 };
